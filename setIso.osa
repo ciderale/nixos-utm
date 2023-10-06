@@ -1,0 +1,11 @@
+on run argv
+	set vm_name to item 1 of argv
+	set iso_path to item 2 of argv
+	set iso to "file://" & iso_path as POSIX file
+	tell application "UTM"
+		set vm to virtual machine named vm_name
+		set config to configuration of vm
+		set item 2 of drives of config to {source:iso, removable:true}
+		update configuration of vm with config
+	end tell
+end run

@@ -75,11 +75,49 @@
             ssh "root@$(nixosIP)" "$@"
           '';
         };
+        packages.nixosCreate = pkgs.writeShellApplication {
+          name = "nixosCreate";
+          runtimeInputs = [pkgs.util-linux.bin pkgs.coreutils pkgs.gnused self'.packages.nixosCmd];
+          text = ''
+            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
+
+            NAME=$NIXOS_NAME
+            VM_ID=$(uuidgen)
+            DISK_ID=$(uuidgen)
+            #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
+            MAC_ADDR=$(md5sum <<< "$NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
+
+
+            FOLDER="$UTM_DATA_DIR/$NAME.utm"
+            mkdir -p "$FOLDER/Data"
+            touch "$FOLDER/Data/$DISK_ID.img"
+            install -m 600 ${./efi_vars.fd} "$FOLDER/Data/efi_vars.fd"
+            sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g;s/XXX_DISK_ID/$DISK_ID/g;s/XXX_MAC_ADDR/$MAC_ADDR/g" ${./config.plist} > "$FOLDER/config.plist"
+
+            utmctl start "$NAME"
+            utmctl stop "$NAME"
+            osascript ${./setIso.osa} "$NAME" ${self'.packages.nixosImg}
+            sleep 2
+            utmctl start "$NAME"
+            while ! nixosCmd ls | grep nixos ; do
+              echo "VM $NAME not yet running"
+              sleep 2;
+            done
+            nixosCmd uname
+            echo "VM $NAME is running"
+
+            echo "setting password"
+            nixosCmd "echo -e '$NIXOS_PW\n$NIXOS_PW' | sudo passwd"
+          '';
+        };
         devenv.shells.default = {
           env.NIXOS_NAME = "AAA";
           env.NIXOS_PW = "foo";
+          enterShell = ''
+            export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
+          '';
           packages = builtins.attrValues {
-            inherit (self'.packages) utm sshNixos nixosIP nixosCmd nixosSetRootPW;
+            inherit (self'.packages) utm sshNixos nixosIP nixosCmd nixosSetRootPW nixosCreate;
             inherit (pkgs) coreutils expect;
           };
         };
