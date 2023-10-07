@@ -1,0 +1,11 @@
+on run argv
+	set vm_name to item 1 of argv
+	tell application "UTM"
+		set vm to virtual machine named vm_name
+		set config to configuration of vm
+		set mydrives to drives of config
+		set newdrives to (item 1 of mydrives)
+		set drives of config to newdrives
+		update configuration of vm with config
+	end tell
+end run

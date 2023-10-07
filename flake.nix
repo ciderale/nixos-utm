@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     devenv.url = "github:cachix/devenv";
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
+    nixos-anywhere.url = "github:numtide/nixos-anywhere";
+    nixos-anywhere.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {flake-parts, ...}:
@@ -59,7 +63,12 @@
           name = "nixosIP";
           runtimeInputs = [self'.packages.nixosCmd pkgs.gnused];
           text = ''
-            nixosCmd ip a | sed -ne 's/.*inet \([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\).*scope global.*/\1/p'
+            MAC=$(sed -ne 's/.*\(..:..:..:..:..:..\).*/\1/p' "$UTM_DATA_DIR/$NIXOS_NAME.utm/config.plist")
+            # shellcheck disable=SC2001
+            MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/' <<< "$MAC")
+            IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
+            echo "$IP"
+            #nixosCmd ip a | sed -ne 's/.*inet \([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\).*scope global.*/\1/p'
           '';
         };
         packages.nixosSetRootPW = pkgs.writeShellApplication {
@@ -77,7 +86,13 @@
         };
         packages.nixosCreate = pkgs.writeShellApplication {
           name = "nixosCreate";
-          runtimeInputs = [pkgs.util-linux.bin pkgs.coreutils pkgs.gnused self'.packages.nixosCmd];
+          runtimeInputs = [
+            pkgs.util-linux.bin
+            pkgs.coreutils
+            pkgs.gnused
+            self'.packages.nixosCmd
+            inputs'.nixos-anywhere.packages.default
+          ];
           text = ''
             UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
 
@@ -90,7 +105,8 @@
 
             FOLDER="$UTM_DATA_DIR/$NAME.utm"
             mkdir -p "$FOLDER/Data"
-            touch "$FOLDER/Data/$DISK_ID.img"
+            tar xvzf ${./empty.img.gz}
+            mv empty.img "$FOLDER/Data/$DISK_ID.img"
             install -m 600 ${./efi_vars.fd} "$FOLDER/Data/efi_vars.fd"
             sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g;s/XXX_DISK_ID/$DISK_ID/g;s/XXX_MAC_ADDR/$MAC_ADDR/g" ${./config.plist} > "$FOLDER/config.plist"
 
@@ -108,10 +124,21 @@
 
             echo "setting password"
             nixosCmd "echo -e '$NIXOS_PW\n$NIXOS_PW' | sudo passwd"
+            nixosCmd "sudo mkdir -p /root/.ssh"
+            nixosCmd "echo '${builtins.head inputs.self.nixosConfigurations.utm.config.users.users.root.openssh.authorizedKeys.keys}' | sudo tee -a /root/.ssh/authorized_keys"
+
+            #echo "$NIXOS_PW"
+            #ssh-copy-id "root@$(nixosIP)"
+
+            nixos-anywhere --flake .#utm "root@$(nixosIP)" --build-on-remote
+
+            utmctl stop "$NAME"
+            osascript ${./removeIso.osa} "$NAME"
+            utmctl start "$NAME"
           '';
         };
         devenv.shells.default = {
-          env.NIXOS_NAME = "AAA";
+          env.NIXOS_NAME = "MyNixOS";
           env.NIXOS_PW = "foo";
           enterShell = ''
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
@@ -119,6 +146,7 @@
           packages = builtins.attrValues {
             inherit (self'.packages) utm sshNixos nixosIP nixosCmd nixosSetRootPW nixosCreate;
             inherit (pkgs) coreutils expect;
+            aw = inputs'.nixos-anywhere.packages.default;
           };
         };
       };
@@ -126,6 +154,14 @@
         # The usual flake attributes can be defined here, including system-
         # agnostic ones like nixosModule and system-enumerating ones, although
         # those are more easily expressed in perSystem.
+        nixosConfigurations.utm = inputs.nixpkgs.lib.nixosSystem {
+          system = "aarch64-linux";
+          modules = [
+            inputs.disko.nixosModules.disko
+            {disko.devices.disk.disk1.device = "/dev/vda";}
+            ./configuration.nix
+          ];
+        };
       };
     };
 }
