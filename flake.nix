@@ -81,7 +81,7 @@
           runtimeInputs = [self'.packages.nixosIP pkgs.openssh];
           text = ''
             # shellcheck disable=SC2029
-            ssh "root@$(nixosIP)" "$@"
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null "root@$(nixosIP)" "$@"
           '';
         };
         packages.nixosCreate = pkgs.writeShellApplication {
@@ -146,7 +146,6 @@
           packages = builtins.attrValues {
             inherit (self'.packages) utm sshNixos nixosIP nixosCmd nixosSetRootPW nixosCreate;
             inherit (pkgs) coreutils expect;
-            aw = inputs'.nixos-anywhere.packages.default;
           };
         };
       };
