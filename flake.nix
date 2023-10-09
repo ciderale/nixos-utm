@@ -45,6 +45,7 @@
           runtimeInputs = [self'.packages.utm];
           text = ''
             TT=$(utmctl attach "$NIXOS_NAME" | sed -n -e 's/PTTY: //p')
+            echo "TTY IS: $TT"
             DAT=/tmp/ttyDump.dat.''$''$
             trap 'rm "$DAT"' EXIT
 
@@ -91,6 +92,7 @@
             pkgs.coreutils
             pkgs.gnused
             pkgs.openssh
+            pkgs.ps
             self'.packages.nixosCmd
             inputs'.nixos-anywhere.packages.default
           ];
@@ -105,7 +107,24 @@
 
 
             FOLDER="$UTM_DATA_DIR/$NAME.utm"
+            if [ -e "$FOLDER" ]; then
+              read -r -e -p "The VM [$NAME] exists: should the folder $FOLDER be deleted (y/N)" -i "n" answer
+              case "$answer" in
+                y | Y | yes ) rm -rf "$FOLDER" ;;
+                *) echo "keep existing VM. abort."; exit ;;
+              esac
+            fi
+            # shellcheck disable=SC2009
+            if ps aux | grep '[U]TM'; then
+              UTM_PID=$(ps ax -o pid,command | grep '[U]TM'|cut -d' ' -f1)
+              read -r -e -p "Running at $UTM_PID. Kill? (y/N)" -i "n" answer
+              case "$answer" in
+                y | Y | yes ) kill "$UTM_PID" ;;
+                *) echo "don't stop UTM. abort."; exit ;;
+              esac
+            fi
             mkdir -p "$FOLDER/Data"
+            set -x
             tar xvzf ${./empty.img.gz}
             mv empty.img "$FOLDER/Data/$DISK_ID.img"
             install -m 600 ${./efi_vars.fd} "$FOLDER/Data/efi_vars.fd"
@@ -113,8 +132,10 @@
 
             utmctl start "$NAME"
             utmctl stop "$NAME"
+            sleep 1
             osascript ${./setIso.osa} "$NAME" ${self'.packages.nixosImg}
-            sleep 2
+            sleep 2 # sometimes iso is not recognised.. maybe sleep helps
+
             utmctl start "$NAME"
             while ! nixosCmd ls | grep nixos ; do
               echo "VM $NAME not yet running"
@@ -127,9 +148,7 @@
             nixosCmd "echo -e '$NIXOS_PW\n$NIXOS_PW' | sudo passwd"
             nixosCmd "sudo mkdir -p /root/.ssh"
             nixosCmd "echo '${builtins.head inputs.self.nixosConfigurations.utm.config.users.users.root.openssh.authorizedKeys.keys}' | sudo tee -a /root/.ssh/authorized_keys"
-
-            #echo "$NIXOS_PW"
-            #ssh-copy-id "root@$(nixosIP)"
+            sleep 2
 
             nixos-anywhere --flake .#utm "root@$(nixosIP)" --build-on-remote
 
@@ -137,7 +156,7 @@
             osascript ${./removeIso.osa} "$NAME"
             utmctl start "$NAME"
 
-            while ! ssh-keyscan "$(nixosIP)"; do sleep 1; done
+            while ! ssh-keyscan "$(nixosIP)"; do sleep 2; done
             ssh-keygen -R "$(nixosIP)"
           '';
         };
