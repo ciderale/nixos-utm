@@ -93,7 +93,9 @@
             pkgs.gnused
             pkgs.openssh
             pkgs.ps
+            self'.packages.utm
             self'.packages.nixosCmd
+            self'.packages.nixosIP
             inputs'.nixos-anywhere.packages.default
           ];
           text = ''
@@ -167,7 +169,7 @@
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
           packages = builtins.attrValues {
-            inherit (self'.packages) utm sshNixos nixosIP nixosCmd nixosSetRootPW nixosCreate;
+            inherit (self'.packages) nixosCreate sshNixos;
             inherit (pkgs) coreutils expect;
           };
         };
