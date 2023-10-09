@@ -81,7 +81,7 @@
           runtimeInputs = [self'.packages.nixosIP pkgs.openssh];
           text = ''
             # shellcheck disable=SC2029
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null "root@$(nixosIP)" "$@"
+            ssh "root@$(nixosIP)" "$@"
           '';
         };
         packages.nixosCreate = pkgs.writeShellApplication {
@@ -90,6 +90,7 @@
             pkgs.util-linux.bin
             pkgs.coreutils
             pkgs.gnused
+            pkgs.openssh
             self'.packages.nixosCmd
             inputs'.nixos-anywhere.packages.default
           ];
@@ -135,6 +136,9 @@
             utmctl stop "$NAME"
             osascript ${./removeIso.osa} "$NAME"
             utmctl start "$NAME"
+
+            while ! ssh-keyscan "$(nixosIP)"; do sleep 1; done
+            ssh-keygen -R "$(nixosIP)"
           '';
         };
         devenv.shells.default = {
