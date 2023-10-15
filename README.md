@@ -14,7 +14,8 @@ automate as much as possible for a simple automation setup.
 
 - create a nix flake with a nixosConfiguration defined
 	- the ./example folder provides a flake with minimal example config
-	- use it with `nix new -t github:ciderale/nixos-utm my-utm-vm`
+	- use it with `nix flake new -t github:ciderale/nixos-utm my-utm-vm`
+	- adjust ./configuration.nix (atleast set your ssh public key)
 - define an environment variable VM_NAME to name the UTM VM
 	- maybe configure this env var within your project/system setup
 - kickoff the installation process with the following command
