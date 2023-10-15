@@ -135,7 +135,7 @@
             utmctl start "$NAME"
             utmctl stop "$NAME"
             sleep 1
-            osascript ${./setIso.osa} "$NAME" ${self'.packages.nixosImg}
+            osascript ${./addIso.osa} "$NAME" ${self'.packages.nixosImg}
             sleep 2 # sometimes iso is not recognised.. maybe sleep helps
 
             utmctl start "$NAME"
@@ -169,7 +169,7 @@
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
           packages = builtins.attrValues {
-            inherit (self'.packages) nixosCreate sshNixos;
+            inherit (self'.packages) nixosCreate sshNixos utm;
             inherit (pkgs) coreutils expect;
           };
         };

@@ -27,12 +27,6 @@
 			<key>ReadOnly</key>
 			<false/>
 		</dict>
-		<dict>
-			<key>Identifier</key>
-			<string>895540E6-A970-43C1-BCA9-2B31346AD8BA</string>
-			<key>ReadOnly</key>
-			<true/>
-		</dict>
 	</array>
 	<key>Information</key>
 	<dict>

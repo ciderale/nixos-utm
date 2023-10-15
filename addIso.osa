@@ -5,7 +5,7 @@ on run argv
 	tell application "UTM"
 		set vm to virtual machine named vm_name
 		set config to configuration of vm
-		set item 2 of drives of config to {source:iso, removable:true}
+		set end of drives of config to {source:iso, removable:true}
 		update configuration of vm with config
 	end tell
 end run
