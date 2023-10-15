@@ -85,6 +85,21 @@
             ssh "root@$(nixosIP)" "$@"
           '';
         };
+        packages.killUTM = pkgs.writeShellApplication {
+          name = "killUTM";
+          runtimeInputs = [self'.packages.utm];
+          text = ''
+            # shellcheck disable=SC2009
+            if ps aux | grep '/[U]TM'; then
+              UTM_PID=$(ps ax -o pid,command | grep '/[U]TM'|cut -d' ' -f1)
+              read -r -e -p "Running at $UTM_PID. Kill? (y/N)" -i "n" answer
+              case "$answer" in
+                y | Y | yes ) kill "$UTM_PID" ;;
+                *) echo "don't stop UTM. abort."; exit ;;
+              esac
+            fi
+          '';
+        };
         packages.nixosCreate = pkgs.writeShellApplication {
           name = "nixosCreate";
           runtimeInputs = [
@@ -96,44 +111,43 @@
             self'.packages.utm
             self'.packages.nixosCmd
             self'.packages.nixosIP
+            self'.packages.killUTM
             inputs'.nixos-anywhere.packages.default
           ];
           text = ''
             UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
 
             NAME=$NIXOS_NAME
-            VM_ID=$(uuidgen)
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
             MAC_ADDR=$(md5sum <<< "$NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
 
 
-            FOLDER="$UTM_DATA_DIR/$NAME.utm"
-            if [ -e "$FOLDER" ]; then
-              read -r -e -p "The VM [$NAME] exists: should the folder $FOLDER be deleted (y/N)" -i "n" answer
+            if utmctl list | grep "$NAME" ; then
+              read -r -e -p "The VM [$NAME] exists: should the VM be deleted (y/N)" -i "n" answer
               case "$answer" in
-                y | Y | yes ) rm -rf "$FOLDER" ;;
+                y | Y | yes ) utmctl stop "$NAME"; utmctl delete "$NAME" ;;
                 *) echo "keep existing VM. abort."; exit ;;
               esac
             fi
-            # shellcheck disable=SC2009
-            if ps aux | grep '[U]TM'; then
-              UTM_PID=$(ps ax -o pid,command | grep '[U]TM'|cut -d' ' -f1)
-              read -r -e -p "Running at $UTM_PID. Kill? (y/N)" -i "n" answer
-              case "$answer" in
-                y | Y | yes ) kill "$UTM_PID" ;;
-                *) echo "don't stop UTM. abort."; exit ;;
-              esac
-            fi
-            mkdir -p "$FOLDER/Data"
-            set -x
-            install -m 600 ${./efi_vars.fd} "$FOLDER/Data/efi_vars.fd"
-            sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g" ${./config.plist} > "$FOLDER/config.plist"
 
-            utmctl start "$NAME"
-            utmctl stop "$NAME"
-            sleep 1
+            echo "create the VM [$NAME] with applescript"
             osascript ${./setupVM.osa} "$NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
             sleep 2 # sometimes iso is not recognised.. maybe sleep helps
+
+            echo "configure the VM with plutil"
+            FOLDER="$UTM_DATA_DIR/$NAME.utm"
+            CFG="$FOLDER"/config.plist
+            plutil -insert "Display.0" -json '{ "HeightPixels": 1200, "PixelsPerInch": 226, "WidthPixels": 1920 }' "$CFG"
+            plutil -replace "Virtualization.Rosetta" -bool true "$CFG"
+            plutil -replace "Virtualization.Keyboard" -bool true "$CFG"
+            plutil -replace "Virtualization.Trackpad" -bool true "$CFG"
+            plutil -replace "Virtualization.Pointer" -bool true "$CFG"
+            plutil -replace "Virtualization.Keybaord" -bool true "$CFG"
+            plutil -replace "Virtualization.ClipboardSharing" -bool true "$CFG"
+            plutil -replace "Virtualization.Audio" -bool false "$CFG"
+            plutil -replace "Virtualization.Balloon" -bool true "$CFG"
+            echo "refresh UTMs view of the configuration"
+            killUTM
 
             utmctl start "$NAME"
             while ! nixosCmd ls | grep nixos ; do
