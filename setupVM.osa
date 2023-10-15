@@ -6,6 +6,7 @@ on run argv
 	tell application "UTM"
 		set vm to virtual machine named vm_name
 		set config to configuration of vm
+		set end of drives of config to {guest size:65536}
 		set end of drives of config to {source:iso, removable:true}
 		set end of network interfaces of config to {address:vm_mac, mode:shared}
 		update configuration of vm with config

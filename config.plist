@@ -19,14 +19,6 @@
 	</array>
 	<key>Drive</key>
 	<array>
-		<dict>
-			<key>Identifier</key>
-			<string>XXX_DISK_ID</string>
-			<key>ImageName</key>
-			<string>XXX_DISK_ID.img</string>
-			<key>ReadOnly</key>
-			<false/>
-		</dict>
 	</array>
 	<key>Information</key>
 	<dict>

@@ -103,7 +103,6 @@
 
             NAME=$NIXOS_NAME
             VM_ID=$(uuidgen)
-            DISK_ID=$(uuidgen)
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
             MAC_ADDR=$(md5sum <<< "$NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
 
@@ -127,10 +126,8 @@
             fi
             mkdir -p "$FOLDER/Data"
             set -x
-            tar xvzf ${./empty.img.gz}
-            mv empty.img "$FOLDER/Data/$DISK_ID.img"
             install -m 600 ${./efi_vars.fd} "$FOLDER/Data/efi_vars.fd"
-            sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g;s/XXX_DISK_ID/$DISK_ID/g" ${./config.plist} > "$FOLDER/config.plist"
+            sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g" ${./config.plist} > "$FOLDER/config.plist"
 
             utmctl start "$NAME"
             utmctl stop "$NAME"
