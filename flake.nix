@@ -70,7 +70,6 @@
             MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
             IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
             echo "$IP"
-            #nixosCmd ip a | sed -ne 's/.*inet \([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\).*scope global.*/\1/p'
           '';
         };
         packages.nixosSetRootPW = pkgs.writeShellApplication {
@@ -82,8 +81,9 @@
           name = "sshNixos";
           runtimeInputs = [self'.packages.nixosIP pkgs.openssh];
           text = ''
+            VM_IP=$(nixosIP)
             # shellcheck disable=SC2029
-            ssh "root@$(nixosIP)" "$@"
+            ssh "root@$VM_IP" "$@"
           '';
         };
         packages.killUTM = pkgs.writeShellApplication {
