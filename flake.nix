@@ -173,8 +173,7 @@
             INSTALL_KEY_FILE=$(mktemp -u)
             ssh-keygen -t ed25519 -N "" -f "$INSTALL_KEY_FILE"
             INSTALL_KEY_PUB=$(cat "$INSTALL_KEY_FILE.pub")
-            nixosCmd "sudo mkdir -p /root/.ssh"
-            nixosCmd "echo '$INSTALL_KEY_PUB' | sudo tee -a /root/.ssh/authorized_keys"
+            nixosCmd "sudo mkdir -p /root/.ssh; echo '$INSTALL_KEY_PUB' | sudo tee -a /root/.ssh/authorized_keys"
 
             echo "## start the actuall installation"
             nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE"
@@ -203,14 +202,7 @@
         # The usual flake attributes can be defined here, including system-
         # agnostic ones like nixosModule and system-enumerating ones, although
         # those are more easily expressed in perSystem.
-        nixosConfigurations.utm = inputs.nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            inputs.disko.nixosModules.disko
-            {disko.devices.disk.disk1.device = "/dev/vda";}
-            ./example/configuration.nix
-          ];
-        };
+        nixosConfigurations.utm = import ./example/default.nix inputs;
       };
     };
 }
