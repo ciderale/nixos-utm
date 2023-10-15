@@ -124,12 +124,6 @@
 
             FLAKE_CONFIG=".#utm"
             NAME=$NIXOS_NAME
-            AUTHORIZED_PATH="config.users.users.root.openssh.authorizedKeys.keys"
-            AUTHORIZED_KEYS=$(
-              nix eval --raw --apply 'builtins.concatStringsSep "\n"' \
-                "''${FLAKE_CONFIG/'#'/#nixosConfigurations.}.''${AUTHORIZED_PATH}"
-            )
-            echo "$AUTHORIZED_KEYS"
 
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
             MAC_ADDR=$(md5sum <<< "$NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
@@ -171,11 +165,15 @@
             echo "VM $NAME is running"
 
             echo "setting password"
+            INSTALL_KEY_FILE=$(mktemp -u)
+            ssh-keygen -t ed25519 -N "" -f "$INSTALL_KEY_FILE"
+            INSTALL_KEY_PUB=$(cat "$INSTALL_KEY_FILE.pub")
             nixosCmd "sudo mkdir -p /root/.ssh"
-            nixosCmd "echo '$AUTHORIZED_KEYS' | sudo tee -a /root/.ssh/authorized_keys"
-            sleep 2
+            nixosCmd "echo '$INSTALL_KEY_PUB' | sudo tee -a /root/.ssh/authorized_keys"
 
-            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote
+            echo "start the actuall installation"
+            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE"
+            rm "$INSTALL_KEY_FILE" "$INSTALL_KEY_FILE".pub
 
             utmctl stop "$NAME"
             osascript ${./removeIso.osa} "$NAME"
