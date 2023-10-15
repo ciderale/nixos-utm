@@ -66,7 +66,7 @@
           text = ''
             MAC=$(sed -ne 's/.*\(..:..:..:..:..:..\).*/\1/p' "$UTM_DATA_DIR/$NIXOS_NAME.utm/config.plist")
             # shellcheck disable=SC2001
-            MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/' <<< "$MAC")
+            MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
             IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
             echo "$IP"
             #nixosCmd ip a | sed -ne 's/.*inet \([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\).*scope global.*/\1/p'
