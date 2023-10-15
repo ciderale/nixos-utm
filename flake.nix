@@ -44,7 +44,7 @@
           name = "nixosCmd";
           runtimeInputs = [self'.packages.utm];
           text = ''
-            TT=$(utmctl attach "$NIXOS_NAME" | sed -n -e 's/PTTY: //p')
+            TT=$(utmctl attach "$VM_NAME" | sed -n -e 's/PTTY: //p')
             echo "TTY IS: $TT"
             DAT=/tmp/ttyDump.dat.''$''$
             trap 'rm "$DAT"' EXIT
@@ -64,7 +64,8 @@
           name = "nixosIP";
           runtimeInputs = [self'.packages.nixosCmd pkgs.gnused];
           text = ''
-            MAC=$(sed -ne 's/.*\(..:..:..:..:..:..\).*/\1/p' "$UTM_DATA_DIR/$NIXOS_NAME.utm/config.plist")
+            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
+            MAC=$(sed -ne 's/.*\(..:..:..:..:..:..\).*/\1/p' "$UTM_DATA_DIR/$VM_NAME.utm/config.plist")
             # shellcheck disable=SC2001
             MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
             IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
@@ -120,29 +121,27 @@
             inputs'.nixos-anywhere.packages.default
           ];
           text = ''
-            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
-
             FLAKE_CONFIG=".#utm"
-            NAME=$NIXOS_NAME
 
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
-            MAC_ADDR=$(md5sum <<< "$NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
+            MAC_ADDR=$(md5sum <<< "$VM_NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
 
 
-            if utmctl list | grep "$NAME" ; then
-              read -r -e -p "The VM [$NAME] exists: should the VM be deleted (y/N)" -i "n" answer
+            if utmctl list | grep "$VM_NAME" ; then
+              read -r -e -p "The VM [$VM_NAME] exists: should the VM be deleted (y/N)" -i "n" answer
               case "$answer" in
-                y | Y | yes ) utmctl stop "$NAME"; utmctl delete "$NAME" ;;
+                y | Y | yes ) utmctl stop "$VM_NAME"; utmctl delete "$VM_NAME" ;;
                 *) echo "keep existing VM. abort."; exit ;;
               esac
             fi
 
-            echo "create the VM [$NAME] with applescript"
-            osascript ${./setupVM.osa} "$NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
+            echo "create the VM [$VM_NAME] with applescript"
+            osascript ${./setupVM.osa} "$VM_NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
             sleep 2 # sometimes iso is not recognised.. maybe sleep helps
 
             echo "configure the VM with plutil"
-            FOLDER="$UTM_DATA_DIR/$NAME.utm"
+            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
+            FOLDER="$UTM_DATA_DIR/$VM_NAME.utm"
             CFG="$FOLDER"/config.plist
             plutil -insert "Display.0" -json '{ "HeightPixels": 1200, "PixelsPerInch": 226, "WidthPixels": 1920 }' "$CFG"
             plutil -replace "Virtualization.Rosetta" -bool true "$CFG"
@@ -156,13 +155,13 @@
             echo "refresh UTMs view of the configuration"
             killUTM
 
-            utmctl start "$NAME"
+            utmctl start "$VM_NAME"
             while ! nixosCmd ls | grep nixos ; do
-              echo "VM $NAME not yet running"
+              echo "VM $VM_NAME not yet running"
               sleep 2;
             done
             nixosCmd uname
-            echo "VM $NAME is running"
+            echo "VM $VM_NAME is running"
 
             echo "setting password"
             INSTALL_KEY_FILE=$(mktemp -u)
@@ -175,16 +174,16 @@
             nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE"
             rm "$INSTALL_KEY_FILE" "$INSTALL_KEY_FILE".pub
 
-            utmctl stop "$NAME"
-            osascript ${./removeIso.osa} "$NAME"
-            utmctl start "$NAME"
+            utmctl stop "$VM_NAME"
+            osascript ${./removeIso.osa} "$VM_NAME"
+            utmctl start "$VM_NAME"
 
             while ! ssh-keyscan "$(nixosIP)"; do sleep 2; done
             ssh-keygen -R "$(nixosIP)"
           '';
         };
         devenv.shells.default = {
-          env.NIXOS_NAME = "MyNixOS2";
+          env.VM_NAME = "MyNixOS2";
           enterShell = ''
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
