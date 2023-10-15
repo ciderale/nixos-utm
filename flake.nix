@@ -44,6 +44,7 @@
           name = "nixosCmd";
           runtimeInputs = [self'.packages.utm];
           text = ''
+            set -x
             TT=$(utmctl attach "$VM_NAME" | sed -n -e 's/PTTY: //p')
             echo "TTY IS: $TT"
             DAT=/tmp/ttyDump.dat.''$''$
@@ -174,6 +175,7 @@
             ssh-keygen -t ed25519 -N "" -f "$INSTALL_KEY_FILE"
             INSTALL_KEY_PUB=$(cat "$INSTALL_KEY_FILE.pub")
             nixosCmd "sudo mkdir -p /root/.ssh; echo '$INSTALL_KEY_PUB' | sudo tee -a /root/.ssh/authorized_keys"
+            sleep 0.5;
 
             echo "## start the actuall installation"
             nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE"
@@ -199,9 +201,6 @@
         };
       };
       flake = {
-        # The usual flake attributes can be defined here, including system-
-        # agnostic ones like nixosModule and system-enumerating ones, although
-        # those are more easily expressed in perSystem.
         nixosConfigurations.utm = import ./example/default.nix inputs;
       };
     };
