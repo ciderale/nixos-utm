@@ -88,8 +88,9 @@
         };
         packages.sshNixos = pkgs.writeShellApplication {
           name = "sshNixos";
-          runtimeInputs = [self'.packages.nixosIP pkgs.openssh];
+          runtimeInputs = [self'.packages.nixosIP pkgs.openssh self'.packages.utm];
           text = ''
+            utmctl start "$VM_NAME" || true # be sure it is started, or start it
             VM_IP=$(nixosIP)
             # shellcheck disable=SC2029
             ssh "root@$VM_IP" "$@"
