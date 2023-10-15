@@ -127,7 +127,7 @@
             set -x
             FLAKE_CONFIG=''${1:-".#utm"}
             echo "## Check that the provided nixosConfiguration $FLAKE_CONFIG exists"
-            nix eval "''${FLAKE_CONFIG/'#'/'#'nixosConfigurations.}.class"
+            nix eval "''${FLAKE_CONFIG/'#'/'#'nixosConfigurations.}.config.system.stateVersion"
 
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
             MAC_ADDR=$(md5sum <<< "$VM_NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
@@ -208,7 +208,7 @@
           modules = [
             inputs.disko.nixosModules.disko
             {disko.devices.disk.disk1.device = "/dev/vda";}
-            ./configuration.nix
+            ./example/configuration.nix
           ];
         };
       };
