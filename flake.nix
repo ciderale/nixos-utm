@@ -121,6 +121,7 @@
             inputs'.nixos-anywhere.packages.default
           ];
           text = ''
+            set -x
             FLAKE_CONFIG=".#utm"
 
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
@@ -152,7 +153,8 @@
             plutil -replace "Virtualization.ClipboardSharing" -bool true "$CFG"
             plutil -replace "Virtualization.Audio" -bool false "$CFG"
             plutil -replace "Virtualization.Balloon" -bool true "$CFG"
-            echo "refresh UTMs view of the configuration"
+
+            echo -e "\n\n## refresh UTMs view of the configuration requires restarting UTM"
             killUTM
 
             utmctl start "$VM_NAME"
@@ -163,14 +165,14 @@
             nixosCmd uname
             echo "VM $VM_NAME is running"
 
-            echo "setting password"
+            echo "## configure ad-hoc authorized key for nixos-anywhere"
             INSTALL_KEY_FILE=$(mktemp -u)
             ssh-keygen -t ed25519 -N "" -f "$INSTALL_KEY_FILE"
             INSTALL_KEY_PUB=$(cat "$INSTALL_KEY_FILE.pub")
             nixosCmd "sudo mkdir -p /root/.ssh"
             nixosCmd "echo '$INSTALL_KEY_PUB' | sudo tee -a /root/.ssh/authorized_keys"
 
-            echo "start the actuall installation"
+            echo "## start the actuall installation"
             nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE"
             rm "$INSTALL_KEY_FILE" "$INSTALL_KEY_FILE".pub
 
