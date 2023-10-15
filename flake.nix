@@ -75,7 +75,7 @@
         packages.nixosSetRootPW = pkgs.writeShellApplication {
           name = "nixosSetRootPW";
           runtimeInputs = [self'.packages.nixosCmd];
-          text = ''nixosCmd "echo -e '$NIXOS_PW\n$NIXOS_PW' | sudo passwd" '';
+          text = ''NIXOS_PW=$1; nixosCmd "echo -e '$NIXOS_PW\n$NIXOS_PW' | sudo passwd" '';
         };
         packages.sshNixos = pkgs.writeShellApplication {
           name = "sshNixos";
@@ -117,7 +117,15 @@
           text = ''
             UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
 
+            FLAKE_CONFIG=".#utm"
             NAME=$NIXOS_NAME
+            AUTHORIZED_PATH="config.users.users.root.openssh.authorizedKeys.keys"
+            AUTHORIZED_KEYS=$(
+              nix eval --raw --apply 'builtins.concatStringsSep "\n"' \
+                "''${FLAKE_CONFIG/'#'/#nixosConfigurations.}.''${AUTHORIZED_PATH}"
+            )
+            echo "$AUTHORIZED_KEYS"
+
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
             MAC_ADDR=$(md5sum <<< "$NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
 
@@ -158,12 +166,11 @@
             echo "VM $NAME is running"
 
             echo "setting password"
-            nixosCmd "echo -e '$NIXOS_PW\n$NIXOS_PW' | sudo passwd"
             nixosCmd "sudo mkdir -p /root/.ssh"
-            nixosCmd "echo '${builtins.head inputs.self.nixosConfigurations.utm.config.users.users.root.openssh.authorizedKeys.keys}' | sudo tee -a /root/.ssh/authorized_keys"
+            nixosCmd "echo '$AUTHORIZED_KEYS' | sudo tee -a /root/.ssh/authorized_keys"
             sleep 2
 
-            nixos-anywhere --flake .#utm "root@$(nixosIP)" --build-on-remote
+            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote
 
             utmctl stop "$NAME"
             osascript ${./removeIso.osa} "$NAME"
@@ -175,7 +182,6 @@
         };
         devenv.shells.default = {
           env.NIXOS_NAME = "MyNixOS2";
-          env.NIXOS_PW = "foo";
           enterShell = ''
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
