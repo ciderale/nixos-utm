@@ -125,7 +125,9 @@
           ];
           text = ''
             set -x
-            FLAKE_CONFIG=".#utm"
+            FLAKE_CONFIG=''${1:-".#utm"}
+            echo "## Check that the provided nixosConfiguration $FLAKE_CONFIG exists"
+            nix eval "''${FLAKE_CONFIG/'#'/'#'nixosConfigurations.}.class"
 
             #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
             MAC_ADDR=$(md5sum <<< "$VM_NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
@@ -139,9 +141,8 @@
               esac
             fi
 
-            echo "create the VM [$VM_NAME] with applescript"
+            echo "create the VM [$VM_NAME] from $FLAKE_CONFIG with applescript"
             osascript ${./setupVM.osa} "$VM_NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
-            sleep 2 # sometimes iso is not recognised.. maybe sleep helps
 
             echo "configure the VM with plutil"
             UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
@@ -194,7 +195,7 @@
           '';
           packages = builtins.attrValues {
             inherit (self'.packages) nixosCreate sshNixos utm;
-            inherit (pkgs) coreutils expect;
+            inherit (pkgs) coreutils;
           };
         };
       };
