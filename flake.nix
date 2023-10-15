@@ -44,8 +44,13 @@
           name = "nixosCmd";
           runtimeInputs = [self'.packages.utm];
           text = ''
-            set -x
-            TT=$(utmctl attach "$VM_NAME" | sed -n -e 's/PTTY: //p')
+            TT=
+            while [ -z "$TT" ]; do
+              TT=$(utmctl attach "$VM_NAME" | sed -n -e 's/PTTY: //p')
+              sleep 1
+              set -x
+            done
+            set +x
             echo "TTY IS: $TT"
             DAT=/tmp/ttyDump.dat.''$''$
             trap 'rm "$DAT"' EXIT
@@ -72,7 +77,10 @@
             IP=
             while [ -z "$IP" ]; do
               IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
+              set -x
+              sleep 1
             done
+            set +x
             echo "$IP"
           '';
         };
