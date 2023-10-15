@@ -12,9 +12,13 @@ automate as much as possible for a simple automation setup.
 
 ## How to create a VM
 
-- create a nix flake with a nixosConfiguration defined (e.g. `.#utm`)
-- define an environment variable VM_NAME to name the UTM VM (e.g. `myVm`)
+- create a nix flake with a nixosConfiguration defined
+	- the ./example folder provides a flake with minimal example config
+	- use it with `nix new -t github:ciderale/nixos-utm my-utm-vm`
+- define an environment variable VM_NAME to name the UTM VM
+	- maybe configure this env var within your project/system setup
 - kickoff the installation process with the following command
+	- assuming your flake is the current directory `.` with config `utm`
 
 ```
 export VM_NAME=myVM

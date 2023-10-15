@@ -210,6 +210,10 @@
       };
       flake = {
         nixosConfigurations.utm = import ./example/default.nix inputs;
+        templates.default = {
+          path = ./example;
+          description = "A basic UTM VM configuration";
+        };
       };
     };
 }
