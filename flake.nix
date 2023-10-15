@@ -87,11 +87,16 @@
         };
         packages.killUTM = pkgs.writeShellApplication {
           name = "killUTM";
-          runtimeInputs = [self'.packages.utm];
+          runtimeInputs = [
+            self'.packages.utm
+            pkgs.coreutils
+            pkgs.gnused
+            pkgs.ps
+          ];
           text = ''
             # shellcheck disable=SC2009
             if ps aux | grep '/[U]TM'; then
-              UTM_PID=$(ps ax -o pid,command | grep '/[U]TM'|cut -d' ' -f1)
+              UTM_PID=$(ps ax -o pid,command | grep '/[U]TM'| sed -ne 's/^[ ]*\([[:digit:]]*\) .*/\1/p')
               read -r -e -p "Running at $UTM_PID. Kill? (y/N)" -i "n" answer
               case "$answer" in
                 y | Y | yes ) kill "$UTM_PID" ;;
