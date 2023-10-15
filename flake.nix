@@ -155,7 +155,7 @@
             plutil -replace "Virtualization.Pointer" -bool true "$CFG"
             plutil -replace "Virtualization.Keybaord" -bool true "$CFG"
             plutil -replace "Virtualization.ClipboardSharing" -bool true "$CFG"
-            plutil -replace "Virtualization.Audio" -bool false "$CFG"
+            plutil -replace "Virtualization.Audio" -bool true "$CFG"
             plutil -replace "Virtualization.Balloon" -bool true "$CFG"
 
             echo -e "\n\n## refresh UTMs view of the configuration requires restarting UTM"

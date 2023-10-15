@@ -3,7 +3,9 @@ inputs.nixpkgs.lib.nixosSystem {
   system = "aarch64-linux";
   modules = [
     inputs.disko.nixosModules.disko
-    {disko.devices.disk.disk1.device = "/dev/vda";}
+    ./base.nix
     ./configuration.nix
+    ./disk-config.nix
+    ./hardware-configuration.nix
   ];
 }
