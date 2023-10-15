@@ -68,7 +68,10 @@
             MAC=$(sed -ne 's/.*\(..:..:..:..:..:..\).*/\1/p' "$UTM_DATA_DIR/$VM_NAME.utm/config.plist")
             # shellcheck disable=SC2001
             MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
-            IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
+            IP=
+            while [ -z "$IP" ]; do
+              IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
+            done
             echo "$IP"
           '';
         };
