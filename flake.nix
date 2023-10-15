@@ -130,12 +130,12 @@
             tar xvzf ${./empty.img.gz}
             mv empty.img "$FOLDER/Data/$DISK_ID.img"
             install -m 600 ${./efi_vars.fd} "$FOLDER/Data/efi_vars.fd"
-            sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g;s/XXX_DISK_ID/$DISK_ID/g;s/XXX_MAC_ADDR/$MAC_ADDR/g" ${./config.plist} > "$FOLDER/config.plist"
+            sed -e "s/XXX_NAME/$NAME/g;s/XXX_VM_ID/$VM_ID/g;s/XXX_DISK_ID/$DISK_ID/g" ${./config.plist} > "$FOLDER/config.plist"
 
             utmctl start "$NAME"
             utmctl stop "$NAME"
             sleep 1
-            osascript ${./addIso.osa} "$NAME" ${self'.packages.nixosImg}
+            osascript ${./setupVM.osa} "$NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
             sleep 2 # sometimes iso is not recognised.. maybe sleep helps
 
             utmctl start "$NAME"
@@ -163,7 +163,7 @@
           '';
         };
         devenv.shells.default = {
-          env.NIXOS_NAME = "MyNixOS";
+          env.NIXOS_NAME = "MyNixOS2";
           env.NIXOS_PW = "foo";
           enterShell = ''
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";

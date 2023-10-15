@@ -1,11 +1,13 @@
 on run argv
 	set vm_name to item 1 of argv
-	set iso_path to item 2 of argv
+	set vm_mac to item 2 of argv
+	set iso_path to item 3 of argv
 	set iso to "file://" & iso_path as POSIX file
 	tell application "UTM"
 		set vm to virtual machine named vm_name
 		set config to configuration of vm
 		set end of drives of config to {source:iso, removable:true}
+		set end of network interfaces of config to {address:vm_mac, mode:shared}
 		update configuration of vm with config
 	end tell
 end run

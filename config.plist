@@ -39,12 +39,6 @@
 	</dict>
 	<key>Network</key>
 	<array>
-		<dict>
-			<key>MacAddress</key>
-			<string>XXX_MAC_ADDR</string>
-			<key>Mode</key>
-			<string>Shared</string>
-		</dict>
 	</array>
 	<key>Serial</key>
 	<array>
