@@ -35,6 +35,12 @@ VM_NAME=myVM nix run github:ciderale/nixos-utm#nixosIP
 This command uses the arp cache to lookup the ip address based on the mac
 address that is found in the VMs configuration folder.
 
+## How to rebuild the configuration for an existing configuration
+
+```
+VM_NAME=myVM nix run github:ciderale/nixos-utm#nixosDeploy .#utm
+```
+
 ## Some aspects that can be improved
 
 - Make VM configuration configurable (currently hardcoded in nixosCreate)

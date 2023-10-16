@@ -195,6 +195,19 @@
             ssh-keygen -R "$(nixosIP)"
           '';
         };
+        packages.nixosDeploy = pkgs.writeShellApplication {
+          name = "nixosDeploy";
+          runtimeInputs = [
+            self'.packages.nixosIP
+            pkgs.nixos-rebuild
+          ];
+          text = ''
+            FLAKE_CONFIG=$1
+            THE_TARGET="root@$(nixosIP)"
+            export NIX_SSHOPTS="-o ControlPath=/tmp/ssh-utm-vm-%n"
+            nixos-rebuild --fast --target-host "$THE_TARGET" --build-host "$THE_TARGET" --flake "$FLAKE_CONFIG" switch
+          '';
+        };
         devenv.shells.default = {
           env.VM_NAME = "MyNixOS2";
           enterShell = ''
