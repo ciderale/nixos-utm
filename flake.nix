@@ -199,13 +199,24 @@
           name = "nixosDeploy";
           runtimeInputs = [
             self'.packages.nixosIP
+            #self'.packages.sshNixos
             pkgs.nixos-rebuild
           ];
           text = ''
+            set -x
             FLAKE_CONFIG=$1
             THE_TARGET="root@$(nixosIP)"
+            echo "Deploying $FLAKE_CONFIG to $THE_TARGET"
             export NIX_SSHOPTS="-o ControlPath=/tmp/ssh-utm-vm-%n"
             nixos-rebuild --fast --target-host "$THE_TARGET" --build-host "$THE_TARGET" --flake "$FLAKE_CONFIG" switch
+
+            # experiment with copying flake manually
+            #            FLAKE="''${FLAKE_CONFIG/'#'*}"
+            #            REF=$(nix flake metadata "$FLAKE" --json | jq .path -r)
+            #            nix copy "$REF" --to "ssh://$THE_TARGET"
+            #
+            #            CFG="''${FLAKE_CONFIG/*'#'}"
+            #            sshNixos "nixos-rebuild switch --flake $REF#$CFG"
           '';
         };
         devenv.shells.default = {
@@ -215,7 +226,7 @@
           '';
           packages = builtins.attrValues {
             inherit (self'.packages) nixosCreate sshNixos utm;
-            inherit (pkgs) coreutils;
+            inherit (pkgs) coreutils nixos-rebuild;
           };
         };
       };
