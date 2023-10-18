@@ -133,6 +133,7 @@
           text = ''
             set -x
             FLAKE_CONFIG=''${1:-".#utm"}
+            shift 1
             echo "## Check that the provided nixosConfiguration $FLAKE_CONFIG exists"
             nix eval "''${FLAKE_CONFIG/'#'/'#'nixosConfigurations.}.config.system.stateVersion"
 
@@ -184,7 +185,7 @@
             sleep 0.5;
 
             echo "## start the actuall installation"
-            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE"
+            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE" "$@"
             rm "$INSTALL_KEY_FILE" "$INSTALL_KEY_FILE".pub
 
             utmctl stop "$VM_NAME"
@@ -205,10 +206,13 @@
           text = ''
             set -x
             FLAKE_CONFIG=$1
+            shift
             THE_TARGET="root@$(nixosIP)"
             echo "Deploying $FLAKE_CONFIG to $THE_TARGET"
             export NIX_SSHOPTS="-o ControlPath=/tmp/ssh-utm-vm-%n"
-            nixos-rebuild --fast --target-host "$THE_TARGET" --build-host "$THE_TARGET" --flake "$FLAKE_CONFIG" switch
+            nixos-rebuild \
+              --fast --target-host "$THE_TARGET" --build-host "$THE_TARGET" \
+              switch --flake "$FLAKE_CONFIG" "$@"
 
             # experiment with copying flake manually
             #            FLAKE="''${FLAKE_CONFIG/'#'*}"
