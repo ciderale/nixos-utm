@@ -32,14 +32,7 @@
           url = "https://hydra.nixos.org/build/237110262/download/1/nixos-minimal-23.11pre531102.fdd898f8f79e-aarch64-linux.iso";
           sha256 = "sha256-PF6EfDXHJDQHHHN+fXUKBcRIRszvpQrrWmIyltFHn5c=";
         };
-        packages.utm = pkgs.utm.overrideAttrs (oldAttrs: rec {
-          version = "4.4.2";
-          src = pkgs.fetchurl {
-            url = "https://github.com/utmapp/UTM/releases/download/v${version}/UTM.dmg";
-            #hash = "sha256-aDIjf4TqhSIgYaJulI5FgXxlNiZ1qcNY+Typ7+S5Hc8=";
-            hash = "sha256-QKZNIqJpY5ipl6R5/UHjfh6I5NkyFn5xZLy/CL5453g=";
-          };
-        });
+        packages.utm = pkgs.utm;
         packages.nixosCmd = pkgs.writeShellApplication {
           name = "nixosCmd";
           runtimeInputs = [self'.packages.utm];
