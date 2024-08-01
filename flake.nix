@@ -15,7 +15,7 @@
       imports = [
         inputs.devenv.flakeModule
       ];
-      systems = ["x86_64-linux" "aarch64-darwin"];
+      systems = inputs.nixpkgs.lib.systems.flakeExposed;
       perSystem = {
         config,
         self',
@@ -216,14 +216,16 @@
             #            sshNixos "nixos-rebuild switch --flake $REF#$CFG"
           '';
         };
-        devenv.shells.default = {
+        devenv.shells.default = {lib, ...}: {
           env.VM_NAME = "MyNixOS2";
+          containers = lib.mkForce {};
           enterShell = ''
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
           packages = builtins.attrValues {
             inherit (self'.packages) nixosCreate sshNixos utm;
             inherit (pkgs) coreutils nixos-rebuild;
+            inherit (inputs'.nixos-anywhere.packages) nixos-anywhere;
           };
         };
       };
