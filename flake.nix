@@ -60,10 +60,9 @@
         };
         packages.nixosIP = pkgs.writeShellApplication {
           name = "nixosIP";
-          runtimeInputs = [self'.packages.nixosCmd pkgs.gnused];
+          runtimeInputs = [self'.packages.utmConfiguration pkgs.gnused];
           text = ''
-            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
-            MAC=$(sed -ne 's/.*\(..:..:..:..:..:..\).*/\1/p' "$UTM_DATA_DIR/$VM_NAME.utm/config.plist")
+            MAC=$(utmConfiguration mac)
             # shellcheck disable=SC2001
             MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
             IP=
@@ -121,12 +120,17 @@
             self'.packages.nixosCmd
             self'.packages.nixosIP
             self'.packages.killUTM
+            self'.packages.utmConfiguration
             inputs'.nixos-anywhere.packages.default
           ];
           text = ''
             set -x
             FLAKE_CONFIG=''${1:-".#utm"}
             shift 1
+
+            # define UTM_CONFIG -- or fallback to provided default
+            : "''${UTM_CONFIG:=${./utm.config.nix}}"
+
             echo "## Check that the provided nixosConfiguration $FLAKE_CONFIG exists"
             nix eval "''${FLAKE_CONFIG/'#'/'#'nixosConfigurations.}.config.system.stateVersion"
 
@@ -146,19 +150,7 @@
             osascript ${./setupVM.osa} "$VM_NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
 
             echo "configure the VM with plutil"
-            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
-            FOLDER="$UTM_DATA_DIR/$VM_NAME.utm"
-            CFG="$FOLDER"/config.plist
-            plutil -insert "Display.0" -json '{ "HeightPixels": 1200, "PixelsPerInch": 226, "WidthPixels": 1920 }' "$CFG"
-            plutil -replace "Virtualization.Rosetta" -bool true "$CFG"
-            plutil -replace "Virtualization.Keyboard" -bool true "$CFG"
-            plutil -replace "Virtualization.Trackpad" -bool true "$CFG"
-            plutil -replace "Virtualization.Pointer" -bool true "$CFG"
-            plutil -replace "Virtualization.Keybaord" -bool true "$CFG"
-            plutil -replace "Virtualization.ClipboardSharing" -bool true "$CFG"
-            plutil -replace "Virtualization.Audio" -bool true "$CFG"
-            plutil -replace "Virtualization.Balloon" -bool true "$CFG"
-
+            utmConfiguration update "$UTM_CONFIG"
             echo -e "\n\n## refresh UTMs view of the configuration requires restarting UTM"
             killUTM
 
@@ -187,6 +179,52 @@
 
             while ! ssh-keyscan "$(nixosIP)"; do sleep 2; done
             ssh-keygen -R "$(nixosIP)"
+          '';
+        };
+        packages.utmConfiguration = pkgs.writeShellApplication {
+          name = "utmConfiguration";
+          runtimeInputs = [pkgs.jq];
+          text = ''
+            # INPUTS: VM_NAME
+            UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
+            VM_FOLDER="$UTM_DATA_DIR/$VM_NAME.utm"
+            PLIST_FILE="$VM_FOLDER"/config.plist
+
+            CMD=$1
+            shift
+
+            case "$CMD" in
+              show)
+                plutil -convert json -o - "$PLIST_FILE" | jq .
+                ;;
+
+              mac)
+                $0 show | jq '.Network[0].MacAddress' -r
+                ;;
+
+              update)
+                NIX_PATCH=$1
+
+                # CREATE TEMPORARY FILES
+                PLIST_JSON=$(mktemp -u)
+                PLIST_JSON_PLIST=$(mktemp -u)
+                JSON_PATCH=$(mktemp -u)
+                trap 'rm $PLIST_JSON $PLIST_JSON_PLIST $JSON_PATCH' EXIT
+
+                # EXECUTE UPDATE
+                nix eval -f "$NIX_PATCH" --json > "$JSON_PATCH"
+                plutil -convert json -o "$PLIST_JSON" "$PLIST_FILE"
+                jq -s 'reduce .[] as $item ({}; . * $item)' "$PLIST_JSON" "$JSON_PATCH" > "$PLIST_JSON_PLIST"
+                plutil -convert binary1 "$PLIST_JSON_PLIST"
+
+                # WRITE UPDATE TO CONFIG
+                cp "$PLIST_JSON_PLIST" "$PLIST_FILE"
+                ;;
+              *)
+                echo "usage: VM_NAME=your-vm $0 show "
+                echo "usage: VM_NAME=your-vm $0 update patch-config.nix"
+                ;;
+            esac
           '';
         };
         packages.nixosDeploy = pkgs.writeShellApplication {
@@ -223,7 +261,7 @@
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
           packages = builtins.attrValues {
-            inherit (self'.packages) nixosCreate sshNixos utm nixosCmd;
+            inherit (self'.packages) nixosCreate sshNixos utm nixosCmd utmConfiguration nixosIP;
             inherit (pkgs) coreutils nixos-rebuild;
             inherit (inputs'.nixos-anywhere.packages) nixos-anywhere;
           };

@@ -18,6 +18,8 @@ automate as much as possible for a simple automation setup.
 	- adjust ./configuration.nix (atleast set your ssh public key)
 - define an environment variable VM_NAME to name the UTM VM
 	- maybe configure this env var within your project/system setup
+- (optionally) define an environment variable UTM_CONFIG to set UTM VM parameters
+	- fallback to UTM_CONFIG=./utm.config.nix (which is merged using plutil)
 - kickoff the installation process with the following command
 	- assuming your flake is the current directory `.` with config `utm`
 
