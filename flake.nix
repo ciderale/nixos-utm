@@ -159,6 +159,11 @@
             plutil -replace "Virtualization.Audio" -bool true "$CFG"
             plutil -replace "Virtualization.Balloon" -bool true "$CFG"
 
+            # Override default 4Gb memory
+            if [ -n "$VM_MEMORY" ]; then
+              plutil -replace "System.MemorySize" -integer "$VM_MEMORY" "$CFG"
+            fi
+
             echo -e "\n\n## refresh UTMs view of the configuration requires restarting UTM"
             killUTM
 
