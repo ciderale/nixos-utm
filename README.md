@@ -22,6 +22,7 @@ automate as much as possible for a simple automation setup.
 	- assuming your flake is the current directory `.` with config `utm`
 
 ```
+export VM_MEMORY=16384 # Provide this if you want to change the default 4GB VM memory to 16GB
 export VM_NAME=myVM
 nix run github:ciderale/nixos-utm#nixosCreate .#utm
 ```
