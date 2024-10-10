@@ -223,7 +223,7 @@
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
           packages = builtins.attrValues {
-            inherit (self'.packages) nixosCreate sshNixos utm;
+            inherit (self'.packages) nixosCreate sshNixos utm nixosCmd;
             inherit (pkgs) coreutils nixos-rebuild;
             inherit (inputs'.nixos-anywhere.packages) nixos-anywhere;
           };
