@@ -24,10 +24,6 @@
         system,
         ...
       }: {
-        # Per-system attributes can be defined here. The self' and inputs'
-        # module parameters provide easy access to attributes of the same
-        # system.
-        # Equivalent to  inputs'.nixpkgs.legacyPackages.hello;
         packages.nixosImg = pkgs.fetchurl {
           url = "https://hydra.nixos.org/build/237110262/download/1/nixos-minimal-23.11pre531102.fdd898f8f79e-aarch64-linux.iso";
           sha256 = "sha256-PF6EfDXHJDQHHHN+fXUKBcRIRszvpQrrWmIyltFHn5c=";
@@ -134,9 +130,8 @@
             echo "## Check that the provided nixosConfiguration $FLAKE_CONFIG exists"
             nix eval "''${FLAKE_CONFIG/'#'/'#'nixosConfigurations.}.config.system.stateVersion"
 
-            #MAC_ADDR=$(tr -dc A-F0-9 < /dev/urandom | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
+            # deterministically generate mac address from VM_NAME
             MAC_ADDR=$(md5sum <<< "$VM_NAME" | head -c 10 | sed -r 's/(..)/\1:/g;s/:$//;s/^/02:/')
-
 
             if utmctl list | grep "$VM_NAME" ; then
               read -r -e -p "The VM [$VM_NAME] exists: should the VM be deleted (y/N)" -i "n" answer
