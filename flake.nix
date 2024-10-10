@@ -54,21 +54,6 @@
             cat $DAT
           '';
         };
-        packages.nixosIP = pkgs.writeShellApplication {
-          name = "nixosIP";
-          runtimeInputs = [self'.packages.utmConfiguration pkgs.gnused];
-          text = ''
-            MAC=$(utmConfiguration mac)
-            # shellcheck disable=SC2001
-            MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
-            IP=
-            while [ -z "$IP" ]; do
-              IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
-              sleep 1
-            done
-            echo "$IP"
-          '';
-        };
         packages.nixosSetRootPW = pkgs.writeShellApplication {
           name = "nixosSetRootPW";
           runtimeInputs = [self'.packages.nixosCmd];
@@ -76,10 +61,10 @@
         };
         packages.sshNixos = pkgs.writeShellApplication {
           name = "sshNixos";
-          runtimeInputs = [self'.packages.nixosIP pkgs.openssh self'.packages.utm];
+          runtimeInputs = [self'.packages.utmConfiguration pkgs.openssh self'.packages.utm];
           text = ''
             utmctl start "$VM_NAME" || true # be sure it is started, or start it
-            VM_IP=$(nixosIP)
+            VM_IP=$(utmConfiguration ip)
             # shellcheck disable=SC2029
             ssh "root@$VM_IP" "$@"
           '';
@@ -114,7 +99,6 @@
             pkgs.ps
             self'.packages.utm
             self'.packages.nixosCmd
-            self'.packages.nixosIP
             self'.packages.killUTM
             self'.packages.utmConfiguration
             inputs'.nixos-anywhere.packages.default
@@ -165,15 +149,16 @@
             sleep 0.5;
 
             echo "## start the actuall installation"
-            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$(nixosIP)" --build-on-remote -i "$INSTALL_KEY_FILE" "$@"
+            NIXOS_IP=$(utmConfiguration ip)
+            nixos-anywhere --flake "''${FLAKE_CONFIG}" "root@$NIXOS_IP" --build-on-remote -i "$INSTALL_KEY_FILE" "$@"
             rm "$INSTALL_KEY_FILE" "$INSTALL_KEY_FILE".pub
 
             utmctl stop "$VM_NAME"
             osascript ${./removeIso.osa} "$VM_NAME"
             utmctl start "$VM_NAME"
 
-            while ! ssh-keyscan "$(nixosIP)"; do sleep 2; done
-            ssh-keygen -R "$(nixosIP)"
+            while ! ssh-keyscan "$NIXOS_IP"; do sleep 2; done
+            ssh-keygen -R "$NIXOS_IP"
           '';
         };
         packages.utmConfiguration = pkgs.writeShellApplication {
@@ -197,6 +182,18 @@
                 $0 show | jq '.Network[0].MacAddress' -r
                 ;;
 
+              ip)
+                MAC=$($0 mac)
+                # shellcheck disable=SC2001
+                MAC1=$(sed -e 's/0\([[:digit:]]\)/\1/g' <<< "$MAC")
+                IP=
+                while [ -z "$IP" ]; do
+                  IP=$(arp -a | sed -ne "s/.*(\([0-9.]*\)) at $MAC1.*/\1/p")
+                  sleep 1
+                done
+                echo "$IP"
+                ;;
+
               update)
                 NIX_PATCH=$1
 
@@ -215,6 +212,8 @@
                 # WRITE UPDATE TO CONFIG
                 cp "$PLIST_JSON_PLIST" "$PLIST_FILE"
                 ;;
+
+
               *)
                 echo "usage: VM_NAME=your-vm $0 show "
                 echo "usage: VM_NAME=your-vm $0 update patch-config.nix"
@@ -225,15 +224,14 @@
         packages.nixosDeploy = pkgs.writeShellApplication {
           name = "nixosDeploy";
           runtimeInputs = [
-            self'.packages.nixosIP
-            #self'.packages.sshNixos
+            self'.packages.utmConfiguration
             pkgs.nixos-rebuild
           ];
           text = ''
             set -x
             FLAKE_CONFIG=$1
             shift
-            THE_TARGET="root@$(nixosIP)"
+            THE_TARGET="root@$(utmConfiguration ip)"
             echo "Deploying $FLAKE_CONFIG to $THE_TARGET"
             export NIX_SSHOPTS="-o ControlPath=/tmp/ssh-utm-vm-%n"
             nixos-rebuild \
@@ -256,7 +254,7 @@
             export UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
           '';
           packages = builtins.attrValues {
-            inherit (self'.packages) nixosCreate sshNixos utm nixosCmd utmConfiguration nixosIP;
+            inherit (self'.packages) nixosCreate sshNixos utm nixosCmd utmConfiguration;
             inherit (pkgs) coreutils nixos-rebuild;
             inherit (inputs'.nixos-anywhere.packages) nixos-anywhere;
           };

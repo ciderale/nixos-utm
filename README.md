@@ -31,7 +31,7 @@ nix run github:ciderale/nixos-utm#nixosCreate .#utm
 ## Retrieve the VMs IP address
 
 ```
-VM_NAME=myVM nix run github:ciderale/nixos-utm#nixosIP
+VM_NAME=myVM nix run github:ciderale/nixos-utm#utmConfiguration ip
 ```
 
 This command uses the arp cache to lookup the ip address based on the mac
