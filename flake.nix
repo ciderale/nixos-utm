@@ -163,17 +163,14 @@
         };
         packages.utmConfiguration = pkgs.writeShellApplication {
           name = "utmConfiguration";
-          runtimeInputs = [pkgs.jq];
+          runtimeInputs = [pkgs.jq pkgs.coreutils pkgs.gnused];
           text = ''
             # INPUTS: VM_NAME
             UTM_DATA_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents";
             VM_FOLDER="$UTM_DATA_DIR/$VM_NAME.utm"
             PLIST_FILE="$VM_FOLDER"/config.plist
 
-            CMD=$1
-            shift
-
-            case "$CMD" in
+            case "''${1:-usage}" in
               show)
                 plutil -convert json -o - "$PLIST_FILE" | jq .
                 ;;
@@ -195,6 +192,7 @@
                 ;;
 
               update)
+                shift
                 NIX_PATCH=$1
 
                 # CREATE TEMPORARY FILES
@@ -214,9 +212,12 @@
                 ;;
 
 
-              *)
-                echo "usage: VM_NAME=your-vm $0 show "
-                echo "usage: VM_NAME=your-vm $0 update patch-config.nix"
+              usage | *)
+                SCRIPT=$(basename "$0")
+                echo "usage: VM_NAME=your-vm $SCRIPT show"
+                echo "usage: VM_NAME=your-vm $SCRIPT mac"
+                echo "usage: VM_NAME=your-vm $SCRIPT ip"
+                echo "usage: VM_NAME=your-vm $SCRIPT update patch-config.nix"
                 ;;
             esac
           '';

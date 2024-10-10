@@ -28,7 +28,7 @@ export VM_NAME=myVM
 nix run github:ciderale/nixos-utm#nixosCreate .#utm
 ```
 
-## Retrieve the VMs IP address
+## Retrieve the VMs IP/Mac address and other UTM configuration 
 
 ```
 VM_NAME=myVM nix run github:ciderale/nixos-utm#utmConfiguration ip
@@ -36,6 +36,8 @@ VM_NAME=myVM nix run github:ciderale/nixos-utm#utmConfiguration ip
 
 This command uses the arp cache to lookup the ip address based on the mac
 address that is found in the VMs configuration folder.
+
+The command `utmConfiguration` alone provides usage for other UTM configuration related information
 
 ## How to rebuild the configuration for an existing configuration
 
