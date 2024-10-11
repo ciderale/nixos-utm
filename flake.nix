@@ -5,9 +5,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
-    nixos-anywhere.url = "github:numtide/nixos-anywhere";
-    nixos-anywhere.inputs.nixpkgs.follows = "nixpkgs";
-    disko.follows = "nixos-anywhere/disko";
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {flake-parts, ...}:
@@ -101,7 +100,7 @@
             self'.packages.nixosCmd
             self'.packages.killUTM
             self'.packages.utmConfiguration
-            inputs'.nixos-anywhere.packages.default
+            pkgs.nixos-anywhere
           ];
           text = ''
             set -x
@@ -256,8 +255,7 @@
           '';
           packages = builtins.attrValues {
             inherit (self'.packages) nixosCreate sshNixos utm nixosCmd utmConfiguration;
-            inherit (pkgs) coreutils nixos-rebuild;
-            inherit (inputs'.nixos-anywhere.packages) nixos-anywhere;
+            inherit (pkgs) coreutils nixos-rebuild nixos-anywhere;
           };
         };
       };
