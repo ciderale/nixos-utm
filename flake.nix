@@ -23,9 +23,12 @@
         system,
         ...
       }: {
-        packages.nixosImg = pkgs.fetchurl {
-          url = "https://hydra.nixos.org/build/237110262/download/1/nixos-minimal-23.11pre531102.fdd898f8f79e-aarch64-linux.iso";
-          sha256 = "sha256-PF6EfDXHJDQHHHN+fXUKBcRIRszvpQrrWmIyltFHn5c=";
+        packages.nixosInstallerImg = pkgs.fetchurl {
+          # the image is only used for bootstrapping. It will be overwritten by nixos-anywhere
+          # the final version is defined by the configuration you provide in `nixosCreate`
+          # Build 280619599 of job nixos:release-24.11:nixos.iso_minimal.aarch64-linux
+          url = "https://hydra.nixos.org/build/280619599/download/1/nixos-minimal-24.11.710050.62c435d93bf0-aarch64-linux.iso";
+          sha256 = "sha256-BUYqZLwpeSda+wjRvDsYL/AP+KE653ymLuyKUlSGe7A=";
         };
         packages.utm = pkgs.utm;
         packages.nixosCmd = pkgs.writeShellApplication {
@@ -125,7 +128,7 @@
             fi
 
             echo "create the VM [$VM_NAME] from $FLAKE_CONFIG with applescript"
-            osascript ${./setupVM.osa} "$VM_NAME" "$MAC_ADDR" ${self'.packages.nixosImg}
+            osascript ${./setupVM.osa} "$VM_NAME" "$MAC_ADDR" ${self'.packages.nixosInstallerImg}
 
             echo "configure the VM with plutil"
             utmConfiguration update "$UTM_CONFIG"
