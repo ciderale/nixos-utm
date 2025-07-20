@@ -1,3 +1,10 @@
+> [!NOTE]
+>
+> My newer project [ciderale/nixos-lima](https://github.com/ciderale/nixos-lima) also aims
+> for running NixOS VMs on MacOS, but using [lima-vm.io](https://lima-vm.io) instead of UTM.
+> The result is a cleaner and better configurable, declarative VM setup with the same goals.
+> I recommend using [ciderale/nixos-lima](https://github.com/ciderale/nixos-lima).
+
 # NixOS-UTM : Conveniently create UTM VM with NixOS
 
 This repository provides a small wrapper around [nixos-anywhere](https://github.com/nix-community/nixos-anywhere)
